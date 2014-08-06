@@ -114,7 +114,7 @@ void my_free(void* ptr)
 BonjourClass::BonjourClass()
 {
    memset(&_mdnsData, 0, sizeof(MDNSDataInternal_t));
-   memset(&_serviceRecords, 0, sizeof(this->_serviceRecords));
+   memset(&_serviceRecords, 0, sizeof(_serviceRecords));
    
    _state = MDNSStateIdle;
    _writeOffset = 0;
@@ -276,7 +276,7 @@ void BonjourClass::stopDiscoveringService()
 
 int BonjourClass::isDiscoveringService()
 {
-	return (NULL != this->_resolveNames[1]);
+	return (NULL != _resolveNames[1]);
 }
 
 // return value:
@@ -426,7 +426,7 @@ MDNSError_t BonjourClass::_sendMDNSMessage(IPAddress *peerAddress, uint32_t xid,
             *((uint32_t*)&buf[4]) = htonl(MDNS_RESPONSE_TTL);
          
             // data length.
-            uint16_t dlen = strlen((char*)this->_serviceRecords[serviceRecord]->servName) + 2;
+            uint16_t dlen = strlen((char*)_serviceRecords[serviceRecord]->servName) + 2;
             *((uint16_t*)&buf[8]) = htons(dlen);
             
             write((uint8_t*)buf, 10);
@@ -516,7 +516,6 @@ MDNSError_t BonjourClass::_processMDNSQuery()
     DNSHeader_t dnsHeaderBuf;
     DNSHeader_t* dnsHeader = &dnsHeaderBuf;
 #endif
-    int i, j;
     uint8_t* buf;
     uint32_t xid;
     uint16_t udp_len, qCnt, aCnt, aaCnt, addCnt;
@@ -564,7 +563,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
         int rLen = 0, tLen = 0;
 
         // read over the query section 
-        for (i = 0; i < qCnt; i++) 
+        for (uint16_t i = 0; i < qCnt; i++) 
         {         
             // construct service name data structures for comparison
             const uint8_t* servNames[NumMDNSServiceRecords+2];
@@ -573,9 +572,9 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             uint8_t servMatches[NumMDNSServiceRecords+2];
          
             // first entry is our own MDNS name, the rest are our services
-            servNames[0] = (const uint8_t*)this->_bonjourName;
+            servNames[0] = (const uint8_t*)_bonjourName;
             servNamePos[0] = 0;
-            servLens[0] = strlen((char*)this->_bonjourName);
+            servLens[0] = strlen((char*)_bonjourName);
             servMatches[0] = 1;
          
             // second entry is our own the general DNS-SD service
@@ -584,10 +583,10 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             servLens[1] = strlen((char*)DNS_SD_SERVICE);
             servMatches[1] = 1;
                   
-            for (j=2; j<NumMDNSServiceRecords+2; j++)
+            for (uint8_t j = 2; j < NumMDNSServiceRecords + 2; j++)
             {
-                if (NULL != this->_serviceRecords[j-2] && NULL != this->_serviceRecords[j-2]->servName) {
-                    servNames[j] = this->_serviceRecords[j-2]->servName;
+                if (NULL != _serviceRecords[j-2] && NULL != _serviceRecords[j-2]->servName) {
+                    servNames[j] = _serviceRecords[j-2]->servName;
                     servLens[j] = strlen((char*)servNames[j]);
                     servMatches[j] = 1;
                     servNamePos[j] = 0;
@@ -643,10 +642,10 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             // (for one of our services).
             // if so, we'll note to send a record
             
-            memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,4);
+            memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset), 4);
             offset += 4;
          
-            for (j=0; j<NumMDNSServiceRecords+2; j++) 
+            for (uint8_t j = 0; j < NumMDNSServiceRecords + 2; j++) 
             {
                 if (!recordsAskedFor[j] && servNames[j] && servMatches[j] && 0 == servLens[j]) 
                 {
@@ -668,7 +667,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
 #if (defined(HAS_SERVICE_REGISTRATION) && HAS_SERVICE_REGISTRATION) || (defined(HAS_NAME_BROWSING) && HAS_NAME_BROWSING)
 
     else if (1 == dnsHeader->queryResponse && DNSOpQuery == dnsHeader->opCode && MDNS_SERVER_PORT == remotePort() && 
-        (NULL != this->_resolveNames[0] || NULL != this->_resolveNames[1]))
+        (NULL != _resolveNames[0] || NULL != _resolveNames[1]))
     {
         int offset = sizeof(DNSHeader_t);
         uint8_t* buf = (uint8_t*)dnsHeader;
@@ -699,14 +698,14 @@ MDNSError_t BonjourClass::_processMDNSQuery()
         uint8_t lastWasCompressed[2];
         uint8_t servWasCompressed[2];
          
-         servNamePos[0] = servNamePos[1] = 0;
+		servNamePos[0] = servNamePos[1] = 0;
                   
-         for (i=0; i<qCnt+aCnt+aaCnt+addCnt; i++) {
-
-            for (j=0; j<2; j++) {
-               if (NULL != this->_resolveNames[j]) {
-                  servNames[j] = this->_resolveNames[j];
-                  servLens[j] = strlen((const char*)this->_resolveNames[j]);
+		for (uint16_t i = 0; i < qCnt + aCnt + aaCnt + addCnt; i++) 
+		{
+            for (uint8_t j = 0; j < 2; j++) {
+               if (NULL != _resolveNames[j]) {
+                  servNames[j] = _resolveNames[j];
+                  servLens[j] = strlen((const char*)_resolveNames[j]);
                   servMatches[j] = 1;
                } else {
                   servNames[j] = NULL;
@@ -714,7 +713,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
                }
             }
             
-            for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
+            for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) {
                if (NULL != ptrNames[j]) {
                   ptrNamesCmp[j] = ptrNames[j];
                   ptrLensCmp[j] = strlen((const char*)ptrNames[j]);
@@ -730,70 +729,68 @@ MDNSError_t BonjourClass::_processMDNSQuery()
                         
             do {
             	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
-               offset += 1;
-               rLen = buf[0];
-               tLen += 1;
+               	offset += 1;
+               	rLen = buf[0];
+               	tLen += 1;
             
-               if (rLen > 128) { // handle DNS name compression, kinda, sorta...
+               	if (rLen > 128) { // handle DNS name compression, kinda, sorta...
 
-            	   memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
-                  offset += 1;
+                	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
+                  	offset += 1;
 
-                  for (j=0; j<2; j++) {
-                     if (servNamePos[j] && servNamePos[j] != buf[0])
-                        servMatches[j] = 0;
-                     else
-                        servWasCompressed[j] = 1;
+                  	for (uint8_t j = 0; j < 2; j++) {
+                    	if (servNamePos[j] && servNamePos[j] != buf[0])
+                        	servMatches[j] = 0;
+                     	else
+                        	servWasCompressed[j] = 1;
                      
-                     lastWasCompressed[j] = 1;
-                  }
+                     	lastWasCompressed[j] = 1;
+                  	}
                
-                  tLen += 1;
+                  	tLen += 1;
                   
-                  if (0 == firstNamePtrByte)
-                     firstNamePtrByte = buf[0];
+                  	if (0 == firstNamePtrByte)
+                    	firstNamePtrByte = buf[0];
                } else if (rLen > 0) {
-                  if (i < qCnt)
-                     offset += rLen;
-                  else {
-                     int tr = rLen, ir;
+               		if (i < qCnt)
+                    	offset += rLen;
+                	else {
+                    	int tr = rLen, ir;
                      
-                     if (0 == firstNamePtrByte)
-                        firstNamePtrByte = offset-1; // -1, since we already read length (1 byte)
+                    	if (0 == firstNamePtrByte)
+                        	firstNamePtrByte = offset - 1; // -1, since we already read length (1 byte)
                
-                     while (tr > 0) {
-                        ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
-                        memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,ir);
-                        offset += ir;
-                        tr -= ir;
+                    	while (tr > 0) {
+                        	ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
+                        	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,ir);
+                        	offset += ir;
+                        	tr -= ir;
                   
-                        for (j=0; j<2; j++) {
-                           if (!recordsFound[j] && servMatches[j] && servNames[j])
-                              servMatches[j] &= this->_matchStringPart(&servNames[j], &servLens[j],
-                                                                       buf, ir);
-                              if (!partMatched[j])
-                                 partMatched[j] = servMatches[j];
+                        	for (uint8_t j = 0; j < 2; j++) {
+                           		if (!recordsFound[j] && servMatches[j] && servNames[j])
+                              		servMatches[j] &= _matchStringPart(&servNames[j], &servLens[j], buf, ir);
+                              	if (!partMatched[j])
+                                	partMatched[j] = servMatches[j];
                               
-                              lastWasCompressed[j] = 0;
-                        }               
+                              	lastWasCompressed[j] = 0;
+                        	}         
                         
-                        for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
-                           if (NULL != ptrNames[j] && ptrNamesMatches[j]) {
-                              // only compare the part we have. this is incorrect, but good enough,
-                              // since actual MDNS implementations won't go here anyways, as they
-                              // should use name compression. This is just so that multiple Arduinos
-                              // running this MDNSResponder code should be able to find each other's
-                              // services.
-                              if (ptrLensCmp[j] >= ir) 
-                                 ptrNamesMatches[j] &= this->_matchStringPart(&ptrNamesCmp[j],
-                                                            &ptrLensCmp[j], buf, ir);
-                           }
-                        }
-                     }                     
+                        	for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) {
+                           		if (NULL != ptrNames[j] && ptrNamesMatches[j]) {
+                            		// only compare the part we have. this is incorrect, but good enough,
+                            		// since actual MDNS implementations won't go here anyways, as they
+                            		// should use name compression. This is just so that multiple Arduinos
+                            		// running this MDNSResponder code should be able to find each other's
+                            		// services.
+                            		if (ptrLensCmp[j] >= ir) 
+                                 		ptrNamesMatches[j] &= _matchStringPart(&ptrNamesCmp[j], &ptrLensCmp[j], buf, ir);
+                           		}
+                       		}
+                     	}                    
                      
-                     tLen += rLen;
-                  }
-               }
+                     	tLen += rLen;
+                  	}
+               	}
             } while (rLen > 0 && rLen <= 128);
                         
             // if this matched a name of ours (and there are no characters left), then
@@ -801,215 +798,222 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             // (for one of our services).
             // if so, we'll note to send a record
             if (i < qCnt)
-               offset += 4;
-            else if (i >= qCnt) {               
-               if (i >= qCnt + aCnt && !checkAARecords)
-                  break;
+               	offset += 4;
+            else if (i >= qCnt) 
+            {               
+               	if (i >= qCnt + aCnt && !checkAARecords) break;
                
-               uint8_t packetHandled = 0;
+               	uint8_t packetHandled = 0;
 
-               memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,4);
-               offset += 4;
-               if (i < qCnt+aCnt) {
-                  for (j=0; j<2; j++) {
-                     if (0 == servNamePos[j])
-                        servNamePos[j] = offset - 4 - tLen;
+               	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,4);
+               	offset += 4;
+               	if (i < qCnt + aCnt) 
+               	{
+                  	for (uint8_t j = 0; j < 2; j++) 
+                  	{
+                    	if (0 == servNamePos[j])
+                        	servNamePos[j] = offset - 4 - tLen;
                                       
-                     if (servNames[j] &&
-                         ((servMatches[j] && 0 == servLens[j]) ||
-                         (partMatched[j] && lastWasCompressed[j]) ||
-                         (servWasCompressed[j] && servMatches[j]))) { // somewhat handle compression by guessing
-                                             
-                        if (buf[0] == 0 && buf[1] == ((0 == j) ? 0x01 : 0x0c) &&
-                           (buf[2] == 0x00 || buf[2] == 0x80) && buf[3] == 0x01) {
-                           recordsFound[j] = 1;
+                    	if (servNames[j] && ((servMatches[j] && 0 == servLens[j]) || (partMatched[j] && lastWasCompressed[j]) || (servWasCompressed[j] && servMatches[j]))) 
+                        { 
+                        	// somewhat handle compression by guessing                 
+                        	if (buf[0] == 0 && buf[1] == ((0 == j) ? 0x01 : 0x0c) &&
+                           		(buf[2] == 0x00 || buf[2] == 0x80) && buf[3] == 0x01) 
+                           	{
+                           		recordsFound[j] = 1;
+                           		
+                           		// this is an A or PTR type response. Parse it as such.
+                           		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
+                           		offset += 6;
+                           		//uint32_t ttl = ntohl(*(uint32_t*)buf);
+                           		uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
                         
-                           // this is an A or PTR type response. Parse it as such.
+                           		if (0 == j && 4 == dataLen) 
+                           		{
+                              		// ok, this is the IP address. report it via callback.
 
-                           memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
-                           offset += 6;
-                           //uint32_t ttl = ntohl(*(uint32_t*)buf);
-                           uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
-                        
-                           if (0 == j && 4 == dataLen) {
-                              // ok, this is the IP address. report it via callback.
-
-                        	   memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,4);
-                              
-                              this->_finishedResolvingName((char*)this->_resolveNames[0],
-                                                           (const byte*)buf);
-                           } else if (1 == j) {
-                              uint8_t k;
-                              for (k=0; k<MDNS_MAX_SERVICES_PER_PACKET; k++)
-                                 if (NULL == ptrNames[k])
-                                    break;
+                        	   		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,4);
+                              		_finishedResolvingName((char*)this->_resolveNames[0], (const byte*)buf);
+                           		} 
+                           		else if (1 == j) 
+                           		{
+                              		uint8_t k;
+                              		for (k = 0; k < MDNS_MAX_SERVICES_PER_PACKET; k++)
+                                 		if (NULL == ptrNames[k]) break;
                            
-                              if (k < MDNS_MAX_SERVICES_PER_PACKET) {
-                                 int l = dataLen - 2; // -2: data compression of service postfix
+                              		if (k < MDNS_MAX_SERVICES_PER_PACKET) {
+                                 		int l = dataLen - 2; // -2: data compression of service postfix
                               
-                                 uint8_t* ptrName = (uint8_t*)my_malloc(l);
+                                 		uint8_t* ptrName = (uint8_t*)my_malloc(l);
                               
-                                 if (ptrName) {
-
-                                	 memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
-                                	 memcpy((uint8_t*)ptrName, (uint16_t*)(ptr+offset+1) ,l-1);
+                                 		if (ptrName) {
+                                			memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
+                                	 		memcpy((uint8_t*)ptrName, (uint16_t*)(ptr+offset+1) ,l-1);
                                  
-                                    if (buf[0] < l-1)
-                                       (void)ptrName[buf[0]]; // this catches uncompressed names
-                                    else
-                                       ptrName[l-1] = '\0';
+                                    		if (buf[0] < l-1)
+                                       			(void)ptrName[buf[0]]; // this catches uncompressed names
+                                    		else
+                                       			ptrName[l-1] = '\0';
                                     
-                                    ptrNames[k] = ptrName;
-                                    ptrOffsets[k] = (uint16_t)(offset);
+                                    		ptrNames[k] = ptrName;
+                                    		ptrOffsets[k] = (uint16_t)(offset);
  
-                                    checkAARecords = 1;
-                                 }
-                              }
-                           }
-                           offset += dataLen;
-                           packetHandled = 1;
-                        }
-                     }
-                  }
-               } else if (i >= qCnt+aCnt+aaCnt) {
-                  //  check whether we find a service description
-                  if (buf[1] == 0x21) {
-                     for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
-                        if (ptrNames[j] &&
-                              ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) ||
-                              (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) {
-                           // we have found the matching SRV location packet to a previous SRV domain
+                                    		checkAARecords = 1;
+                                 		}
+                              		}
+                           		}
+                           		offset += dataLen;
+                           		packetHandled = 1;
+                        	}
+                     	}
+                  	}
+               	} 
+               	else if (i >= qCnt + aCnt + aaCnt) 
+               	{
+                	// check whether we find a service description
+                	if (buf[1] == 0x21) 
+                	{
+                    	for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) 
+                    	{
+                        	if (ptrNames[j] && ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) || (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) 
+                        	{
+                        		// we have found the matching SRV location packet to a previous SRV domain
+                        		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
+                           		offset += 6;
 
-                        	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
-                           offset += 6;
+                           		//uint32_t ttl = ntohl(*(uint32_t*)buf);
+                          		uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
 
-                           //uint32_t ttl = ntohl(*(uint32_t*)buf);
-                           uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
-
-                           if (dataLen >= 8) {
-
-                        	   memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,8);
-                              ptrPorts[j] = ntohs(*(uint16_t*)&buf[4]);
+                           		if (dataLen >= 8) 
+                           		{
+                           			memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,8);
+                              		ptrPorts[j] = ntohs(*(uint16_t*)&buf[4]);
                               
-                              if (buf[6] > 128) { // target is a compressed name
-                                 ptrIPs[j] = buf[7];
-                              } else { // target is uncompressed
-                                 ptrIPs[j] = offset+6;
-                              }
-                           }
-                           offset += dataLen;
-                           packetHandled = 1;
-                           
-                           break;
-                        }
-                     }
-                 } else if (buf[1] == 0x10) { // txt record
-                     for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
-                        if (ptrNames[j] &&
-                              ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) ||
-                              (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) {
+                              		if (buf[6] > 128) { // target is a compressed name
+                                 		ptrIPs[j] = buf[7];
+                              		} else { // target is uncompressed
+                                 		ptrIPs[j] = offset+6;
+                              		}
+                           		}
+                           		offset += dataLen;
+                           		packetHandled = 1;
+                           		break;
+                        	}
+                     	}
+                 	} 
+                 	else if (buf[1] == 0x10) 
+                 	{ 
+                 		// txt record
+                     	for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) 
+                     	{
+                        	if (ptrNames[j] && ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) || (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) 
+                        	{
+                        		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
+                           		offset += 6;
 
-
-                        	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
-                           offset += 6;
-
-                           //uint32_t ttl = ntohl(*(uint32_t*)buf);
-                           uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
+                           		//uint32_t ttl = ntohl(*(uint32_t*)buf);
+                           		uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
                         
-                           // if there's a content to this txt record, save it for delivery
-                           if (dataLen > 1 && NULL == servTxt[j]) {
-                              servTxt[j] = (uint8_t*)my_malloc(dataLen+1);
-                              if (NULL != servTxt[j]) {
-
-                            	  memcpy((uint8_t*)servTxt[j], (uint16_t*)(ptr+offset) ,dataLen);
+                           		// if there's a content to this txt record, save it for delivery
+                           		if (dataLen > 1 && NULL == servTxt[j]) 
+                           		{
+                              		servTxt[j] = (uint8_t*)my_malloc(dataLen+1);
+                              		if (NULL != servTxt[j]) {
+                              			memcpy((uint8_t*)servTxt[j], (uint16_t*)(ptr+offset) ,dataLen);
                               
-                                 // zero-terminate
-                                 servTxt[j][dataLen] = '\0';
-                              }
-                           }
-                           offset += dataLen;
-                           packetHandled = 1;
-                        
-                           break;
-                        }
-                     }
-                  } else if (buf[1] == 0x01) { // A record (IPv4 address)                     
-                     for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
-                        if (0 == servIPs[j][0]) {
-                           servIPs[j][0] = firstNamePtrByte ? firstNamePtrByte : 255;
+                                 		// zero-terminate
+                                 		servTxt[j][dataLen] = '\0';
+                              		}
+                           		}
+                           		
+                           		offset += dataLen;
+                           		packetHandled = 1;
+                           		break;
+                        	}
+                     	}
+                  	} 
+                  	else if (buf[1] == 0x01) 
+                  	{ 
+                  		// A record (IPv4 address)                     
+                     	for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) 
+                     	{
+                        	if (0 == servIPs[j][0]) 
+                        	{
+                           		servIPs[j][0] = firstNamePtrByte ? firstNamePtrByte : 255;
+                           		
+                           		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
+                           		offset += 6;
 
-                           memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,6);
-                           offset += 6;
-
-                           uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
-                           if (4 == dataLen) {
-                        	  memcpy((uint8_t*)&servIPs[j][1], (uint16_t*)(ptr+offset) ,4);
-                           }
-                           offset += dataLen;
-                           packetHandled = 1;
-                           
-                           break;
-                        }
-                     }
-                  }
-               }
+                           		uint16_t dataLen = ntohs(*(uint16_t*)&buf[4]);
+                           		if (4 == dataLen) {
+                        	  		memcpy((uint8_t*)&servIPs[j][1], (uint16_t*)(ptr+offset) ,4);
+                           		}
+                           		
+                           		offset += dataLen;
+                           		packetHandled = 1;
+                           		break;
+                        	}
+                     	}
+                  	}
+               	}
                
-               // eat the answer
-               if (!packetHandled) {
-            	   offset += 4; // ttl
-            	   memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset), 2);
-            	   offset += 2 + ntohs(*(uint16_t*)buf); // skip over content
-               }
+               	// eat the answer
+               	if (!packetHandled) {
+            		offset += 4; // ttl
+            		memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset), 2);
+            		offset += 2 + ntohs(*(uint16_t*)buf); // skip over content
+               	}
             }
-         }
+		}
          
-         // deliver the services discovered in this packet
-         if (NULL != this->_resolveNames[1]) {
-            char* typeName = (char*)this->_resolveNames[1];
+    	// deliver the services discovered in this packet
+        if (NULL != this->_resolveNames[1]) 
+        {
+        	char* typeName = (char*)this->_resolveNames[1];
             char* p = (char*)this->_resolveNames[1];
-            while(*p && *p != '.')
-               p++;
+            while (*p && *p != '.') p++;
             *p = '\0';
             
-            for (i=0; i<MDNS_MAX_SERVICES_PER_PACKET; i++)
-               if (ptrNames[i]) {
-                  const uint8_t* ipAddr = NULL;
-                  const uint8_t* fallbackIpAddr = NULL;
+            for (uint8_t i = 0; i < MDNS_MAX_SERVICES_PER_PACKET; i++)
+            {
+            	if (NULL == ptrNames[i]) continue
 
-                  for (j=0; j<MDNS_MAX_SERVICES_PER_PACKET; j++) {
-                     if (servIPs[j][0] == ptrIPs[i] || servIPs[j][0] == 255) {
-                        // the || part is such a hack, but it will work as long as there's only
-                        // one A record per MDNS packet. fucking DNS name compression.                     
-                        ipAddr = &servIPs[j][1];
-                        
-                        break;
-                     } else if (NULL == fallbackIpAddr && 0 != servIPs[j][0])
-                        fallbackIpAddr = &servIPs[j][1];
-                  }
-               
-                  // if we can't find a matching IP, we try to use the first one we found.
-                  if (NULL == ipAddr) ipAddr = fallbackIpAddr;
-               
-                  if (ipAddr && this->_serviceFoundCallback) {
-                     this->_serviceFoundCallback(typeName,
-                                                this->_resolveServiceProto,
-                                                (const char*)ptrNames[i],
-                                                (const byte*)ipAddr,
-                                                (unsigned short)ptrPorts[i],
-                                                (const char*)servTxt[i]);
-                  }
-               }
-            *p = '.';
-         }
-   
-         uint8_t k;
-         for (k=0; k<MDNS_MAX_SERVICES_PER_PACKET; k++)
-            if (NULL != ptrNames[k]) {
-               my_free(ptrNames[k]);
-               if (NULL != servTxt[k])
-                  my_free(servTxt[k]);
+				const uint8_t* ipAddr = NULL;
+				const uint8_t* fallbackIpAddr = NULL;
+
+				for (uint8_t j = 0; j < MDNS_MAX_SERVICES_PER_PACKET; j++) 
+				{
+					if (servIPs[j][0] == ptrIPs[i] || servIPs[j][0] == 255) {
+						// the || part is such a hack, but it will work as long as there's only
+						// one A record per MDNS packet. fucking DNS name compression.                     
+						ipAddr = &servIPs[j][1];
+						break;
+					} 
+					else if (NULL == fallbackIpAddr && 0 != servIPs[j][0]) {
+						fallbackIpAddr = &servIPs[j][1];
+					}
+				}
+		   
+				// if we can't find a matching IP, we try to use the first one we found.
+				if (NULL == ipAddr) ipAddr = fallbackIpAddr;
+		   
+				if (ipAddr && this->_serviceFoundCallback) {
+					_serviceFoundCallback(typeName, _resolveServiceProto, (const char*)ptrNames[i], 
+										  (const byte*)ipAddr, (unsigned short)ptrPorts[i], (const char*)servTxt[i]);
+				}
             }
-    }
+        	*p = '.';
+        }
+        
+        for (uint8_t k = 0; k < MDNS_MAX_SERVICES_PER_PACKET; k++) 
+        {
+        	if (NULL != ptrNames[k]) {
+            	my_free(ptrNames[k]);
+               	if (NULL != servTxt[k])
+                 	my_free(servTxt[k]);
+            }
+        }
+	}
 
 #endif // (defined(HAS_SERVICE_REGISTRATION) && HAS_SERVICE_REGISTRATION) || (defined(HAS_NAME_BROWSING) && HAS_NAME_BROWSING)
 
@@ -1023,7 +1027,7 @@ errorReturn:
 #endif
    
     IPAddress _remoteIP = remoteIP();
-   
+    
     // now, handle the requests
     for (j = 0; j<NumMDNSServiceRecords + 2; j++) 
     {
@@ -1057,7 +1061,7 @@ void BonjourClass::run()
     // are we querying a name or service? if so, should we resend the packet or time out?
     for (int i = 0; i < 2; i++) 
     {
-        if (NULL == this->_resolveNames[i]) continue;
+        if (NULL == _resolveNames[i]) continue;
         
         // Hint: _resolveLastSendMillis is updated in _sendMDNSMessage
         if (now - _resolveLastSendMillis[i] > (uint32_t)((i == 0) ? MDNS_NQUERY_RESEND_TIME : MDNS_SQUERY_RESEND_TIME))
@@ -1069,9 +1073,9 @@ void BonjourClass::run()
                 _finishedResolvingName((char*)_resolveNames[0], NULL);
             else if (i == 1 && _serviceFoundCallback) 
             {
-                char* typeName = (char*)this->_resolveNames[1];
-                char* p = (char*)this->_resolveNames[1];
-                while(*p && *p != '.') p++;
+                char* typeName = (char*)_resolveNames[1];
+                char* p = (char*)_resolveNames[1];
+                while (*p && *p != '.') p++;
                 *p = '\0';
                     
                 _serviceFoundCallback(typeName, _resolveServiceProto, NULL, NULL, 0, NULL);
@@ -1137,7 +1141,7 @@ int BonjourClass::addServiceRecord(const char* name, uint16_t port, MDNSServiceP
     
     for (uint8_t i = 0; i < NumMDNSServiceRecords; i++) 
     {
-        if (NULL != this->_serviceRecords[i]) continue; // slot is not empty
+        if (NULL != _serviceRecords[i]) continue; // slot is not empty
         
         record = (MDNSServiceRecord_t*)my_malloc(sizeof(MDNSServiceRecord_t));
         if (NULL == record) break; // allocation has failed, no reason to retry
