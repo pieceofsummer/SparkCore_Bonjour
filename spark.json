@@ -1,0 +1,7 @@
+{
+	"name": "Bonjour",
+	"author": "Alex Skalozub",
+	"version": "1.0.0",
+	"license": "LGPL v3",
+	"description": "Port of EthernetBonjour for Arduino to Spark Core"
+} 
