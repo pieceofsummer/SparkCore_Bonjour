@@ -494,9 +494,9 @@ MDNSError_t BonjourClass::_sendMDNSMessage(IPAddress *peerAddress, uint32_t xid,
 
     endPacket();
 
+#if defined(_USE_MALLOC_)
 errorReturn:
 
-#if defined(_USE_MALLOC_)
     if (NULL != dnsHeader)
         my_free(dnsHeader);
 #endif
@@ -610,7 +610,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             	    memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,1);
             	    offset += 1;
                
-                    for (j=0; j<NumMDNSServiceRecords+2; j++) {
+                    for (uint8_t j = 0; j < NumMDNSServiceRecords + 2; j++) {
                         if (servNamePos[j] && servNamePos[j] != buf[0]) {
                             servMatches[j] = 0;
                         }
@@ -621,13 +621,13 @@ MDNSError_t BonjourClass::_processMDNSQuery()
                     int tr = rLen, ir;
                
                     while (tr > 0) {
-                        ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
+                        ir = ((size_t)tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
 
                         memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,ir);
                         offset += ir;
                         tr -= ir;
                   
-                        for (j=0; j<NumMDNSServiceRecords+2; j++) {
+                        for (uint8_t j = 0; j < NumMDNSServiceRecords + 2; j++) {
                             if (!recordsAskedFor[j] && servMatches[j])
                                 servMatches[j] &= _matchStringPart(&servNames[j], &servLens[j], buf, ir);
                         }
@@ -761,7 +761,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
                         	firstNamePtrByte = offset - 1; // -1, since we already read length (1 byte)
                
                     	while (tr > 0) {
-                        	ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
+                        	ir = ((size_t)tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
                         	memcpy((uint8_t*)buf, (uint16_t*)(ptr+offset) ,ir);
                         	offset += ir;
                         	tr -= ir;
@@ -976,7 +976,7 @@ MDNSError_t BonjourClass::_processMDNSQuery()
             
             for (uint8_t i = 0; i < MDNS_MAX_SERVICES_PER_PACKET; i++)
             {
-            	if (NULL == ptrNames[i]) continue
+            	if (NULL == ptrNames[i]) continue;
 
 				const uint8_t* ipAddr = NULL;
 				const uint8_t* fallbackIpAddr = NULL;
@@ -1029,7 +1029,7 @@ errorReturn:
     IPAddress _remoteIP = remoteIP();
     
     // now, handle the requests
-    for (j = 0; j<NumMDNSServiceRecords + 2; j++) 
+    for (uint8_t j = 0; j < NumMDNSServiceRecords + 2; j++) 
     {
         if (recordsAskedFor[j]) 
         {
